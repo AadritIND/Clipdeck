@@ -4,7 +4,7 @@
 
 ClipDeck keeps a private, local history of the text and images you copy, then drops a compact ink-and-paper ledger when you need it. It stays out of the taskbar, waits quietly in the tray, and can start with Windows.
 
-[**Download the latest Windows installer**](https://github.com/Aadrit1234/Clipdeck/releases/latest)
+[**Download the latest Windows installer**](https://github.com/AadritIND/Clipdeck/releases/latest)
 
 ---
 
@@ -62,7 +62,7 @@ The palette is warm graphite, paper cream, and safety orange. The display face i
 
 ### Installer
 
-1. Download **`ClipDeck-Setup-1.0.0.exe`** from the [latest release](https://github.com/Aadrit1234/Clipdeck/releases/latest).
+1. Download **`ClipDeck-Setup-1.0.0.exe`** from the [latest release](https://github.com/AadritIND/Clipdeck/releases/latest).
 2. Run the installer and choose an install location if you want one.
 3. The installer creates a Start Menu shortcut, a desktop shortcut, and an uninstaller.
 4. ClipDeck starts in the system tray. Look for the clipboard icon in the notification area.
@@ -74,7 +74,7 @@ If you are upgrading from a development copy, quit the development instance from
 ### Build from source
 
 ```bash
-git clone https://github.com/Aadrit1234/Clipdeck.git
+git clone https://github.com/AadritIND/Clipdeck.git
 cd Clipdeck
 npm install
 npm start

@@ -9,11 +9,11 @@
   "private": true,
   "repository": {
     "type": "git",
-    "url": "https://github.com/Aadrit1234/Clipdeck.git"
+    "url": "https://github.com/AadritIND/Clipdeck.git"
   },
-  "homepage": "https://github.com/Aadrit1234/Clipdeck#readme",
+  "homepage": "https://github.com/AadritIND/Clipdeck#readme",
   "bugs": {
-    "url": "https://github.com/Aadrit1234/Clipdeck/issues"
+    "url": "https://github.com/AadritIND/Clipdeck/issues"
   },
   "keywords": [
     "clipboard",
