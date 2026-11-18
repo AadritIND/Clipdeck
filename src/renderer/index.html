@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: clipdeck:; font-src 'self'; connect-src 'none'; media-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none';"
+    />
+    <meta name="color-scheme" content="dark" />
+    <title>ClipDeck</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="stage" id="stage" data-state="closed">
+      <section class="deck" id="deck" role="dialog" aria-label="ClipDeck clipboard index">
+        <div class="grain" aria-hidden="true"></div>
+        <div class="top-rule" aria-hidden="true"></div>
+        <div class="grip" aria-hidden="true"><i></i><i></i><i></i></div>
+
+        <header class="masthead">
+          <div class="brand">
+            <span class="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 30" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round">
+                <path d="M3.2 2.4h11.6l6 6v19.2H3.2z" />
+                <path d="M14.8 2.4v6h6" />
+                <path class="brand-lines" d="M7 13.5h9.2M7 17.8h9.2M7 22.1h5.4" />
+              </svg>
+            </span>
+            <div class="brand-copy">
+              <h1>CLIPDECK<span>/</span></h1>
+              <p><span id="clipCount">00</span> CLIPS <span class="sep">·</span> LOCAL INDEX</p>
+            </div>
+          </div>
+
+          <div class="head-tools">
+            <div class="search-field">
+              <span class="search-icon ico" id="searchIcon" aria-hidden="true"></span>
+              <input
+                id="search"
+                type="text"
+                placeholder="SEARCH"
+                spellcheck="false"
+                autocomplete="off"
+                autocapitalize="off"
+                aria-label="Search clips"
+              />
+              <kbd class="slash" id="slashHint">/</kbd>
+              <button class="search-clear" id="searchClear" type="button" aria-label="Clear search" hidden>×</button>
+            </div>
+            <button class="live" id="livePill" type="button" title="Clipboard watcher — click to pause" aria-pressed="false">
+              <span class="live-dot"></span>
+              <span id="liveLabel">LIVE</span>
+            </button>
+            <button class="close" id="closeBtn" type="button" aria-label="Hide ClipDeck" title="Hide (Esc)">
+              <span class="ico" id="closeIcon" aria-hidden="true"></span>
+            </button>
+          </div>
+        </header>
+
+        <nav class="tabbar">
+          <div class="tabs" id="chips" role="tablist" aria-label="Filter clips"></div>
+          <span class="tab-ink" id="tabInk" aria-hidden="true"></span>
+          <span class="hotkey"><span class="hotkey-label">SUMMON</span><kbd id="hotkeyText">Ctrl+Alt+V</kbd></span>
+        </nav>
+
+        <div class="workspace">
+          <section class="board">
+            <div class="board-head" aria-hidden="true">
+              <span>NO.</span><span></span><span>CLIP</span><span>TYPE</span><span>AGE</span><span></span>
+            </div>
+            <div class="board-scroll" id="stackScroll">
+              <div class="list" id="stack" role="listbox" aria-label="Clips"></div>
+            </div>
+
+            <div class="empty" id="empty" hidden>
+              <div class="empty-slip" aria-hidden="true">
+                <span class="empty-no">00</span>
+                <span class="empty-stamp">NO CLIPS</span>
+                <span class="empty-lines"><i></i><i></i><i></i></span>
+              </div>
+              <p class="empty-title">Nothing clipped yet</p>
+              <p class="empty-sub">Copy anything — it lands here</p>
+              <span class="empty-hint"><kbd>Ctrl</kbd><span>+</span><kbd>C</kbd><span>to begin</span></span>
+            </div>
+
+            <div class="no-results" id="noResults" hidden>
+              <span class="no-results-kicker">NO MATCHES</span>
+              <p>Nothing indexed under “<span id="noQuery"></span>”</p>
+              <button class="text-btn" id="clearFilters" type="button">CLEAR FILTERS</button>
+            </div>
+          </section>
+
+          <section class="receipt-wrap" id="receiptWrap">
+            <article class="receipt" id="receipt" aria-live="polite"></article>
+          </section>
+        </div>
+
+        <footer class="footbar">
+          <div class="hints">
+            <span><kbd>↑</kbd><kbd>↓</kbd> MOVE</span>
+            <span><kbd>↵</kbd> COPY</span>
+            <span><kbd>⌫</kbd> DEL</span>
+            <span><kbd>ESC</kbd> HIDE</span>
+          </div>
+          <div class="foot-right">
+            <button class="check-toggle" id="loginToggle" type="button" role="checkbox" aria-checked="false">
+              <span class="box" aria-hidden="true"></span>
+              <span id="loginLabel">START WITH WINDOWS</span>
+            </button>
+            <span class="ver" id="ver">v1.0.0</span>
+          </div>
+        </footer>
+
+        <div class="toast-zone" id="toastZone" aria-live="polite"></div>
+      </section>
+    </div>
+
+    <script src="icons.js"></script>
+    <script src="mock.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

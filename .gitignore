@@ -1,0 +1,22 @@
+# dependencies
+node_modules/
+
+# packaged output
+dist/
+release/
+
+# local tooling / workspace metadata
+.freebuff/
+.cloud-attachments/
+preview*.png
+
+# logs and OS files
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# local environment
+.env
+.env.*
+!.env.example

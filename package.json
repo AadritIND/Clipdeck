@@ -1,0 +1,92 @@
+{
+  "name": "clipdeck",
+  "productName": "ClipDeck",
+  "version": "1.0.0",
+  "description": "A living clipboard deck that drops from the top edge of your screen.",
+  "main": "src/main.js",
+  "author": "Aadrit",
+  "license": "MIT",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Aadrit1234/Clipdeck.git"
+  },
+  "homepage": "https://github.com/Aadrit1234/Clipdeck#readme",
+  "bugs": {
+    "url": "https://github.com/Aadrit1234/Clipdeck/issues"
+  },
+  "keywords": [
+    "clipboard",
+    "clipboard-manager",
+    "electron",
+    "windows",
+    "productivity",
+    "tray"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "icons": "node scripts/make-icon.mjs",
+    "postinstall": "node scripts/make-icon.mjs",
+    "clean": "node scripts/clean.mjs",
+    "pack": "electron-builder --dir --publish never",
+    "dist": "electron-builder --win nsis --publish never"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "com.clipdeck.app",
+    "productName": "ClipDeck",
+    "copyright": "Copyright © 2026 Aadrit",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "package.json",
+      "README.md",
+      "LICENSE"
+    ],
+    "extraResources": [
+      {
+        "from": "build/icon.png",
+        "to": "icon.png"
+      },
+      {
+        "from": "build/tray.png",
+        "to": "tray.png"
+      }
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "icon.png",
+      "artifactName": "ClipDeck-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "ClipDeck",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false,
+      "uninstallDisplayName": "ClipDeck"
+    }
+  }
+}
