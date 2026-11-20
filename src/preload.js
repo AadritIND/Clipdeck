@@ -21,6 +21,10 @@ contextBridge.exposeInMainWorld('clipdeck', {
   clear: () => invoke('clips:clear'),
   setPaused: (paused) => invoke('watch:set', Boolean(paused)),
   setLaunchAtLogin: (enabled) => invoke('settings:launchAtLogin', Boolean(enabled)),
+  getUpdateState: () => invoke('updates:get'),
+  checkForUpdates: () => invoke('updates:check'),
+  downloadUpdate: () => invoke('updates:download'),
+  installUpdate: () => invoke('updates:install'),
   hide: () => ipcRenderer.send('panel:hide'),
   concealed: () => ipcRenderer.send('panel:concealed'),
   pointer: (inside) => ipcRenderer.send('panel:pointer', Boolean(inside)),
@@ -28,4 +32,5 @@ contextBridge.exposeInMainWorld('clipdeck', {
   onConceal: (callback) => subscribe('panel:conceal', callback),
   onUpdate: (callback) => subscribe('clips:updated', callback),
   onState: (callback) => subscribe('state:changed', callback),
+  onUpdateState: (callback) => subscribe('updates:state', callback),
 });

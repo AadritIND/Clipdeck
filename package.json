@@ -1,7 +1,7 @@
 {
   "name": "clipdeck",
   "productName": "ClipDeck",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A living clipboard deck that drops from the top edge of your screen.",
   "main": "src/main.js",
   "author": "Aadrit",
@@ -47,6 +47,14 @@
       "output": "dist",
       "buildResources": "build"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "AadritIND",
+        "repo": "Clipdeck",
+        "releaseType": "release"
+      }
+    ],
     "files": [
       "src/**/*",
       "package.json",
@@ -88,5 +96,8 @@
       "deleteAppDataOnUninstall": false,
       "uninstallDisplayName": "ClipDeck"
     }
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.11"
   }
 }

@@ -37,6 +37,8 @@
   const loginLabel = $('#loginLabel');
   const hotkeyText = $('#hotkeyText');
   const ver = $('#ver');
+  const updateBtn = $('#updateBtn');
+  const updateLabel = $('#updateLabel');
   const toastZone = $('#toastZone');
   const receiptWrap = $('#receiptWrap');
   const receipt = $('#receipt');
@@ -58,8 +60,15 @@
     paused: false,
     launchAtLogin: false,
     shortcut: 'Ctrl+Alt+V',
-    version: '1.0.0',
+    version: '1.1.0',
     platform: 'win32',
+    update: {
+      enabled: false,
+      status: 'idle',
+      version: null,
+      percent: 0,
+      message: '',
+    },
     isOpen: false,
     copying: false,
     deleting: false,
@@ -627,6 +636,59 @@
     setTimeout(() => livePill.classList.remove('is-spiking'), 760);
   }
 
+  function applyUpdateState(next) {
+    if (!next || typeof next !== 'object') return;
+    const previousStatus = state.update.status;
+    state.update = { ...state.update, ...next };
+    syncUpdateButton();
+
+    if (state.isOpen && previousStatus !== state.update.status) {
+      if (state.update.status === 'available') {
+        toast(`ClipDeck v${state.update.version || ''} is available`);
+      } else if (state.update.status === 'downloaded') {
+        toast('Update ready — restart to install');
+      }
+    }
+  }
+
+  function syncUpdateButton() {
+    if (!updateBtn || !updateLabel) return;
+    const update = state.update || {};
+    const status = update.status || 'idle';
+    const visible =
+      status === 'available' ||
+      status === 'downloading' ||
+      status === 'downloaded' ||
+      status === 'error';
+
+    updateBtn.hidden = !visible;
+    if (!visible) return;
+
+    const version = update.version ? `v${update.version}` : '';
+    const percent = Math.max(0, Math.min(100, Math.round(Number(update.percent) || 0)));
+    updateBtn.dataset.state = status;
+    updateBtn.style.setProperty('--progress', `${percent}%`);
+    updateBtn.disabled = status === 'downloading';
+
+    if (status === 'available') {
+      updateLabel.textContent = version ? `UPDATE TO ${version}` : 'UPDATE AVAILABLE';
+      updateBtn.title = version ? `Download ClipDeck ${version}` : 'Download the update';
+      updateBtn.setAttribute('aria-label', updateBtn.title);
+    } else if (status === 'downloading') {
+      updateLabel.textContent = `DOWNLOADING ${percent}%`;
+      updateBtn.title = 'Downloading the ClipDeck update';
+      updateBtn.setAttribute('aria-label', updateBtn.title);
+    } else if (status === 'downloaded') {
+      updateLabel.textContent = 'RESTART TO UPDATE';
+      updateBtn.title = version ? `Install ClipDeck ${version} and restart` : 'Install the update and restart';
+      updateBtn.setAttribute('aria-label', updateBtn.title);
+    } else {
+      updateLabel.textContent = 'RETRY UPDATE';
+      updateBtn.title = update.message || 'Check for updates again';
+      updateBtn.setAttribute('aria-label', updateBtn.title);
+    }
+  }
+
   function applyState(next) {
     if (!next || typeof next !== 'object') return;
     if (typeof next.paused === 'boolean') state.paused = next.paused;
@@ -634,6 +696,7 @@
     if (typeof next.shortcut === 'string' && next.shortcut) state.shortcut = next.shortcut;
     if (typeof next.version === 'string' && next.version) state.version = next.version;
     if (typeof next.platform === 'string') state.platform = next.platform;
+    if (next.update && typeof next.update === 'object') applyUpdateState(next.update);
 
     livePill.classList.toggle('is-paused', state.paused);
     livePill.setAttribute('aria-pressed', String(state.paused));
@@ -759,6 +822,33 @@
       }
     });
 
+    if (updateBtn) {
+      updateBtn.addEventListener('click', async () => {
+        if (updateBtn.hidden || updateBtn.disabled) return;
+        const status = state.update.status;
+        try {
+          if (status === 'downloaded') {
+            if (apiavailable('installUpdate')) await api.installUpdate();
+            return;
+          }
+
+          let next = null;
+          if ((status === 'available' || status === 'error') && apiavailable('downloadUpdate')) {
+            if (status === 'available' || state.update.version) {
+              next = await api.downloadUpdate();
+            }
+          }
+          if (!next && status === 'error' && apiavailable('checkForUpdates')) {
+            next = await api.checkForUpdates();
+          }
+          if (next) applyUpdateState(next);
+        } catch (error) {
+          console.error('update action failed', error);
+          applyUpdateState({ status: 'error', message: 'Could not start the update' });
+        }
+      });
+    }
+
     stack.addEventListener('click', (event) => {
       if (!(event.target instanceof Element)) return;
       const row = event.target.closest('.clip');
@@ -869,6 +959,7 @@
       });
     }
     if (apiavailable('onState')) api.onState((next) => applyState(next));
+    if (apiavailable('onUpdateState')) api.onUpdateState((next) => applyUpdateState(next));
 
     setInterval(() => {
       if (!state.isOpen) return;

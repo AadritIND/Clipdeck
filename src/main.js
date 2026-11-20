@@ -17,6 +17,7 @@ const {
   protocol,
   screen,
 } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const { JsonFile } = require('./store');
 
 const APP_ID = 'com.clipdeck.app';
@@ -39,6 +40,9 @@ const EDGE_PX = 10;
 // The deck only drops after the cursor rests on the top-centre edge this long.
 const EDGE_DWELL_MS = 1600;
 const LEAVE_GRACE_MS = 180;
+const UPDATE_CHECK_DELAY_MS = 12_000;
+const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
+const UPDATE_REVEAL_INTERVAL_MS = 30 * 60 * 1000;
 
 // The renderer loads local files and image thumbnails through this scheme.
 protocol.registerSchemesAsPrivileged([
@@ -92,6 +96,17 @@ let lastTextHash = '';
 let lastImageHash = '';
 let watcherArmed = false;
 let readyWarned = false;
+let updateTimer = null;
+let updateBusy = false;
+let manualUpdateCheck = false;
+let updateState = {
+  enabled: false,
+  status: 'idle',
+  version: null,
+  percent: 0,
+  message: '',
+  checkedAt: 0,
+};
 
 const launchedHidden = process.argv.includes('--hidden') || process.argv.includes('--silent');
 const idPattern = /^[a-zA-Z0-9-]{6,64}$/;
@@ -177,6 +192,7 @@ function statePayload() {
     version: app.getVersion(),
     platform: process.platform,
     electron: true,
+    update: { ...updateState },
   };
 }
 
@@ -570,6 +586,7 @@ function createPanel() {
   panel.webContents.on('did-finish-load', () => {
     isReady = true;
     console.log('[panel] renderer loaded');
+    panel.webContents.send('updates:state', { ...updateState });
     if (revealQueued) {
       revealQueued = false;
       revealPanel('queued');
@@ -613,6 +630,7 @@ function revealPanel(reason = 'manual') {
     panel.webContents.focus();
   }
   panel.webContents.send('panel:reveal', { reason, focused: reason !== 'edge' });
+  maybeCheckForUpdates();
 }
 
 function hidePanel(reason = 'manual') {
@@ -727,6 +745,8 @@ function updateTrayMenu() {
         broadcastState();
       },
     },
+    { type: 'separator' },
+    updateTrayItem(),
     { type: 'separator' },
     { label: humanCount(clips.length), enabled: false },
     {
@@ -875,6 +895,11 @@ function registerIpc() {
     return { ...statePayload(), launchAtLogin: actual };
   });
 
+  ipcMain.handle('updates:get', () => ({ ...updateState }));
+  ipcMain.handle('updates:check', () => checkForUpdates(true));
+  ipcMain.handle('updates:download', () => downloadUpdate());
+  ipcMain.handle('updates:install', () => installUpdate());
+
   ipcMain.on('panel:hide', () => hidePanel('renderer'));
   ipcMain.on('panel:concealed', () => finishHide());
   ipcMain.on('panel:pointer', (_event, inside) => {
@@ -908,6 +933,224 @@ function registerShortcuts() {
 }
 
 /* ------------------------------------------------------------------ */
+/* updates                                                             */
+/* ------------------------------------------------------------------ */
+
+function updateTrayItem() {
+  if (!app.isPackaged) {
+    return { label: 'Check for updates…', enabled: false };
+  }
+  if (updateState.status === 'available') {
+    return {
+      label: `Download update v${updateState.version || ''}`.trim(),
+      click: () => downloadUpdate(),
+    };
+  }
+  if (updateState.status === 'downloading') {
+    return {
+      label: `Downloading update… ${Math.round(updateState.percent || 0)}%`,
+      enabled: false,
+    };
+  }
+  if (updateState.status === 'downloaded') {
+    return { label: 'Restart to install the update', click: () => installUpdate() };
+  }
+  if (updateState.status === 'checking') {
+    return { label: 'Checking for updates…', enabled: false };
+  }
+  return { label: 'Check for updates…', click: () => checkForUpdates(true) };
+}
+
+function setUpdateState(patch) {
+  updateState = { ...updateState, ...patch };
+  sendToPanel('updates:state', { ...updateState });
+  updateTrayMenu();
+}
+
+function showUpdateBalloon(title, content) {
+  if (!tray || tray.isDestroyed()) return;
+  try {
+    tray.displayBalloon({
+      title,
+      content,
+      icon: nativeImage.createFromPath(APP_ICON),
+      noSound: true,
+    });
+  } catch {
+    /* Notifications are optional. */
+  }
+}
+
+function initUpdater() {
+  updateState.enabled = app.isPackaged;
+  if (!app.isPackaged) {
+    updateState.message = 'Update checks are available in the installed Windows app.';
+    return;
+  }
+
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = false;
+  autoUpdater.allowPrerelease = false;
+  autoUpdater.allowDowngrade = false;
+  autoUpdater.logger = console;
+
+  autoUpdater.on('update-available', (info) => {
+    setUpdateState({
+      status: 'available',
+      version: info && info.version ? info.version : null,
+      percent: 0,
+      message: '',
+      checkedAt: Date.now(),
+    });
+    if (manualUpdateCheck) {
+      showUpdateBalloon(
+        'ClipDeck update available',
+        `Version ${updateState.version} is ready to download.`,
+      );
+      manualUpdateCheck = false;
+    }
+  });
+
+  autoUpdater.on('update-not-available', () => {
+    setUpdateState({
+      status: 'idle',
+      version: null,
+      percent: 0,
+      message: '',
+      checkedAt: Date.now(),
+    });
+    if (manualUpdateCheck) {
+      showUpdateBalloon(
+        'ClipDeck is up to date',
+        `You are running the latest version (${app.getVersion()}).`,
+      );
+      manualUpdateCheck = false;
+    }
+  });
+
+  autoUpdater.on('download-progress', (progress) => {
+    setUpdateState({
+      status: 'downloading',
+      percent: Math.max(0, Math.min(100, Math.round(Number(progress && progress.percent) || 0))),
+    });
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+    setUpdateState({
+      status: 'downloaded',
+      version: info && info.version ? info.version : updateState.version,
+      percent: 100,
+      message: '',
+      checkedAt: Date.now(),
+    });
+    showUpdateBalloon('ClipDeck update ready', 'Open the deck and choose Restart to update.');
+  });
+
+  autoUpdater.on('error', (error) => {
+    const message = error && error.message ? error.message : String(error || 'Unknown update error');
+    console.error('[updater]', message);
+    const wasDownloading = updateState.status === 'downloading';
+    const wasManual = manualUpdateCheck;
+    manualUpdateCheck = false;
+    setUpdateState({
+      status: wasManual || wasDownloading ? 'error' : 'idle',
+      percent: wasDownloading ? updateState.percent : 0,
+      message,
+      checkedAt: Date.now(),
+    });
+    if (wasManual) {
+      showUpdateBalloon('ClipDeck update check failed', 'Open the tray menu to try again.');
+    }
+  });
+
+  updateTimer = setInterval(() => checkForUpdates(false), UPDATE_CHECK_INTERVAL_MS);
+  setTimeout(maybeCheckForUpdates, UPDATE_CHECK_DELAY_MS);
+  updateTrayMenu();
+}
+
+async function checkForUpdates(manual = false) {
+  if (!app.isPackaged) {
+    return { ...updateState, message: 'Update checks are available in the installed app.' };
+  }
+  if (updateBusy || updateState.status === 'downloaded') return { ...updateState };
+
+  updateBusy = true;
+  manualUpdateCheck = Boolean(manual);
+  if (manual) {
+    setUpdateState({ status: 'checking', message: 'Checking for updates…', percent: 0 });
+  }
+
+  try {
+    await autoUpdater.checkForUpdates();
+  } catch (error) {
+    const message = error && error.message ? error.message : String(error || 'Unknown update error');
+    console.error('[updater] check failed', message);
+    const wasManual = manualUpdateCheck;
+    manualUpdateCheck = false;
+    setUpdateState({
+      status: wasManual
+        ? 'error'
+        : updateState.status === 'available' || updateState.status === 'downloaded'
+          ? updateState.status
+          : 'idle',
+      message,
+      checkedAt: Date.now(),
+    });
+    if (wasManual) {
+      showUpdateBalloon('ClipDeck update check failed', 'Open the tray menu to try again.');
+    }
+  } finally {
+    updateBusy = false;
+  }
+
+  return { ...updateState };
+}
+
+async function downloadUpdate() {
+  if (!app.isPackaged) return { ...updateState };
+  if (updateBusy) return { ...updateState };
+  if (updateState.status !== 'available' && updateState.status !== 'error') {
+    return { ...updateState };
+  }
+
+  updateBusy = true;
+  manualUpdateCheck = false;
+  setUpdateState({ status: 'downloading', percent: 0, message: '' });
+
+  try {
+    await autoUpdater.downloadUpdate();
+  } catch (error) {
+    const message = error && error.message ? error.message : String(error || 'Unknown update error');
+    console.error('[updater] download failed', message);
+    setUpdateState({ status: 'error', message, checkedAt: Date.now() });
+  } finally {
+    updateBusy = false;
+  }
+
+  return { ...updateState };
+}
+
+function installUpdate() {
+  if (updateState.status !== 'downloaded') return { ok: false, ...updateState };
+  setImmediate(() => {
+    try {
+      isQuitting = true;
+      autoUpdater.quitAndInstall(false, true);
+    } catch (error) {
+      isQuitting = false;
+      console.error('[updater] could not start the installer', error);
+    }
+  });
+  return { ok: true, ...updateState };
+}
+
+function maybeCheckForUpdates() {
+  if (!app.isPackaged || updateBusy || updateState.status === 'downloaded') return;
+  if (Date.now() - updateState.checkedAt < UPDATE_REVEAL_INTERVAL_MS) return;
+  checkForUpdates(false);
+}
+
+/* ------------------------------------------------------------------ */
 /* app lifecycle                                                       */
 /* ------------------------------------------------------------------ */
 
@@ -917,6 +1160,7 @@ app.on('before-quit', () => {
   isQuitting = true;
   clearInterval(pollTimer);
   clearInterval(edgeTimer);
+  clearInterval(updateTimer);
   globalShortcut.unregisterAll();
 });
 
@@ -977,6 +1221,7 @@ app.whenReady().then(() => {
     `[login] start at login: ${isLaunchAtLogin() ? 'on' : 'off'}${process.platform === 'win32' ? ` · ${startupLinkPath()}` : ''}`,
   );
 
+  initUpdater();
   createPanel();
   createTray();
   registerIpc();

@@ -37,7 +37,8 @@ ClipDeck is a clipboard manager for people who copy all day and don't want a spr
 - **Tray resident** — no taskbar window, no dock icon clutter.
 - **Global summon shortcut** — <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>V</kbd> by default.
 - **Auto-dismiss** — the deck closes shortly after your pointer leaves it.
-- **Local only** — history never leaves your computer.
+- **In-app updates** — the footer offers new GitHub releases, with download progress and restart-to-install.
+- **Local only** — clipboard history never leaves your computer; only update checks and downloads contact GitHub.
 
 ClipDeck copies to the clipboard; it does not auto-paste. Press <kbd>Ctrl</kbd>+<kbd>V</kbd> in the app you are working in.
 
@@ -49,7 +50,7 @@ The deck is a wide, low shelf — up to **1180 × 360 px** on a 1920×1080 displ
 - text tabs with a sliding orange ink underline;
 - a bordered ledger with `NO. / CLIP / TYPE / AGE` columns;
 - a cream paper receipt for the selected clip, with copy, pin, and delete actions;
-- a mono footer with keyboard hints and the Windows autostart toggle.
+- a mono footer with keyboard hints, the update action, and the Windows autostart toggle.
 
 The palette is warm graphite, paper cream, and safety orange. The display face is Bahnschrift, metadata is set in Cascadia Mono, and receipt text is Georgia. There are no bundled fonts or remote assets.
 
@@ -62,7 +63,7 @@ The palette is warm graphite, paper cream, and safety orange. The display face i
 
 ### Installer
 
-1. Download **`ClipDeck-Setup-1.0.0.exe`** from the [latest release](https://github.com/AadritIND/Clipdeck/releases/latest).
+1. Download **`ClipDeck-Setup-1.1.0.exe`** from the [latest release](https://github.com/AadritIND/Clipdeck/releases/latest).
 2. Run the installer and choose an install location if you want one.
 3. The installer creates a Start Menu shortcut, a desktop shortcut, and an uninstaller.
 4. ClipDeck starts in the system tray. Look for the clipboard icon in the notification area.
@@ -81,6 +82,18 @@ npm start
 ```
 
 `npm install` installs Electron and electron-builder, then generates the app and tray icons into `build/`.
+
+## Updates
+
+ClipDeck 1.1.0 and newer check the latest stable GitHub release shortly after launch, when the deck is opened if the last check is stale, and every four hours.
+
+- When a newer version exists, the footer shows **UPDATE TO vX.Y.Z**.
+- Click it to download; the button shows **DOWNLOADING n%**.
+- When the download completes, it changes to **RESTART TO UPDATE**; click it to install and relaunch.
+- The tray menu mirrors the same action and includes **Check for updates…**.
+- Downloads are verified against the SHA-512 in the release's `latest.yml`; the updater only reads from this repository's GitHub Releases.
+
+Update checks are disabled in development builds. The installer is unsigned, so Windows SmartScreen may warn when the downloaded update installer runs. Updates are offered from version 1.1.0 onward; users on 1.0.0 need to install 1.1.0 once manually.
 
 ## Using ClipDeck
 
@@ -128,7 +141,7 @@ The app also has a **Launch at login** checkbox in the tray menu.
 
 ## Your data and privacy
 
-ClipDeck is local-first. It does not use an account, a server, analytics, or telemetry.
+ClipDeck has no account, analytics, or telemetry. Clipboard history never leaves your computer. The only outbound request is the update check and, if you accept an update, the installer download from GitHub Releases. The renderer has no network access.
 
 | Data | Location |
 | --- | --- |
@@ -149,6 +162,7 @@ History is capped at 120 clips by default; pinned clips are kept when older clip
 - A small atomic JSON store (`src/store.js`)
 - Windows Startup shortcut via WScript.Shell for reliable login launch
 - electron-builder + NSIS for the installer
+- electron-updater + GitHub Releases for in-app updates and SHA-512 download verification
 
 ### Run
 
@@ -179,10 +193,30 @@ npm run dist
 The installer is written to:
 
 ```text
-dist/ClipDeck-Setup-1.0.0.exe
+dist/ClipDeck-Setup-1.1.0.exe
 ```
 
 `npm run pack` produces an unpacked build in `dist/win-unpacked/` for smoke testing without installing.
+
+### Publishing an update
+
+The updater reads the latest stable GitHub release. For every new version, bump `package.json`, build, push the source, and create a release that includes all three generated update files:
+
+```bash
+npm version patch --no-git-tag-version
+npm run clean && npm run dist
+git add package.json package-lock.json
+# commit and push the version bump
+git commit -m "Release vX.Y.Z"
+git push
+gh release create vX.Y.Z \
+  dist/ClipDeck-Setup-X.Y.Z.exe \
+  dist/latest.yml \
+  dist/ClipDeck-Setup-X.Y.Z.exe.blockmap \
+  --title "ClipDeck X.Y.Z" --notes "What changed..."
+```
+
+Do not mark the release as a draft or pre-release, and always attach `latest.yml`; installed apps use it to discover the installer. After the release becomes the latest stable release, the next scheduled check (or tray **Check for updates…**) shows the footer button.
 
 The NSIS installer is per-user by default, allows changing the install directory, creates Start Menu and desktop shortcuts, and preserves clip data on uninstall.
 
@@ -192,7 +226,7 @@ The NSIS installer is per-user by default, allows changing the install directory
 ClipDeck/
 ├─ src/
 │  ├─ main.js              Electron lifecycle, tray, clipboard capture, edge reveal,
-│  │                       pointer dismissal, Windows Startup shortcut
+│  │                       pointer dismissal, Windows Startup shortcut, auto-updates
 │  ├─ preload.js           contextBridge API
 │  ├─ store.js             atomic JSON store
 │  └─ renderer/
@@ -229,9 +263,12 @@ Quit ClipDeck from the tray, then remove `%APPDATA%\ClipDeck` (or just `clips.js
 **SmartScreen warning on install.**
 The installer is unsigned. Choose **More info → Run anyway** if you trust this build. A code-signing certificate can be added to the electron-builder configuration later.
 
+**The update button does not appear.**
+The footer only shows it when a newer stable GitHub release exists. Use **Check for updates…** in the tray menu to force a check. Update checks require the installed build (not `npm start`) and an internet connection to GitHub. If a release was just published, it may take a moment for the next check; opening the deck after the cache interval or using the tray menu is the quickest way to refresh it.
+
 ## Status
 
-Version **1.0.0** — first public release. Windows is the primary target. The renderer and clipboard logic are cross-platform, but the installer and Startup shortcut flow are Windows-specific. macOS login-item support exists in the main process; Linux autostart is not implemented.
+Version **1.1.0** — adds the 1.6-second top-edge reveal and the in-app updater with a footer update button, download progress, and restart-to-install. Windows is the primary target. The renderer and clipboard logic are cross-platform, but the installer, updater, and Startup shortcut flow are Windows-specific. macOS login-item support exists in the main process; Linux autostart is not implemented.
 
 There is no automated test suite yet. The app is smoke-tested manually: clipboard text/image capture, image restore, list/search/filter rendering, pin/delete, hover reveal, pointer-leave dismissal, and the packaged executable.
 

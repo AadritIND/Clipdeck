@@ -173,8 +173,9 @@
     paused,
     launchAtLogin,
     shortcut: 'Ctrl+Alt+V',
-    version: '1.0.0',
+    version: '1.1.0',
     platform: 'win32',
+    update: { enabled: false, status: 'idle', version: null, percent: 0, message: '' },
     electron: false,
   });
 
