@@ -37,7 +37,7 @@ const POLL_MS = 850;
 const EDGE_POLL_MS = 55;
 const EDGE_PX = 10;
 // The deck only drops after the cursor rests on the top-centre edge this long.
-const EDGE_DWELL_MS = 2300;
+const EDGE_DWELL_MS = 1600;
 const LEAVE_GRACE_MS = 180;
 
 // The renderer loads local files and image thumbnails through this scheme.
@@ -739,7 +739,7 @@ function updateTrayMenu() {
   ]);
   tray.setContextMenu(menu);
   tray.setToolTip(
-    `ClipDeck — ${humanCount(clips.length)}${settings.paused ? ' · paused' : ''} · hold top edge 4s`,
+    `ClipDeck — ${humanCount(clips.length)}${settings.paused ? ' · paused' : ''} · hold top edge 1.6s`,
   );
 }
 
@@ -995,7 +995,7 @@ app.whenReady().then(() => {
           try {
             tray.displayBalloon({
               title: 'ClipDeck is live',
-              content: `Rest the cursor on the top-centre edge for 4 seconds, or press ${activeShortcut}. Closing the panel leaves ClipDeck in the tray.`,
+              content: `Rest the cursor on the top-centre edge for 1.6 seconds, or press ${activeShortcut}. Closing the panel leaves ClipDeck in the tray.`,
               icon: nativeImage.createFromPath(APP_ICON),
               noSound: true,
             });

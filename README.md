@@ -86,7 +86,7 @@ npm start
 
 ### Open the deck
 
-- **Hover the top-center edge** of the screen for about **2.3 seconds**, or
+- **Hover the top-center edge** of the screen for about **1.6 seconds**, or
 - press <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>V</kbd>, or
 - click the ClipDeck tray icon.
 
@@ -212,7 +212,7 @@ ClipDeck/
 ## Troubleshooting
 
 **The panel does not appear at the top edge.**
-Move the pointer to the exact top-center edge and hold it there for about 2.3 seconds. The edge target is a narrow strip at the top of the screen. If the panel still does not appear, try the global shortcut or the tray icon; another app may own the shortcut.
+Move the pointer to the exact top-center edge and hold it there for about 1.6 seconds. The edge target is a narrow strip at the top of the screen. If the panel still does not appear, try the global shortcut or the tray icon; another app may own the shortcut.
 
 **The deck disappears while I am reading it.**
 It closes about 180 ms after the pointer leaves the panel. Keep the pointer inside the deck, or use the hotkey to open it with keyboard focus.
