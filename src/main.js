@@ -38,7 +38,10 @@ const POLL_MS = 850;
 const EDGE_POLL_MS = 55;
 const EDGE_PX = 10;
 // The deck only drops after the cursor rests on the top-centre edge this long.
-const EDGE_DWELL_MS = 1600;
+// The user can adjust the delay between these limits from the deck settings.
+const DEFAULT_EDGE_DWELL_MS = 1600;
+const MIN_EDGE_DWELL_MS = 500;
+const MAX_EDGE_DWELL_MS = 5000;
 const LEAVE_GRACE_MS = 180;
 const UPDATE_CHECK_DELAY_MS = 12_000;
 const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
@@ -75,6 +78,7 @@ let settings = {
   launchAtLogin: true,
   paused: false,
   seenWelcome: false,
+  edgeDwellMs: DEFAULT_EDGE_DWELL_MS,
   historyLimit: MAX_CLIPS,
 };
 
@@ -121,6 +125,16 @@ function hashOf(value) {
 
 function newId() {
   return crypto.randomUUID();
+}
+
+function clampEdgeDwell(value) {
+  const ms = Math.round(Number(value));
+  if (!Number.isFinite(ms)) return DEFAULT_EDGE_DWELL_MS;
+  return Math.max(MIN_EDGE_DWELL_MS, Math.min(MAX_EDGE_DWELL_MS, ms));
+}
+
+function edgeDwellSeconds() {
+  return (clampEdgeDwell(settings.edgeDwellMs) / 1000).toFixed(1);
 }
 
 function humanCount(n) {
@@ -188,6 +202,7 @@ function statePayload() {
   return {
     paused: Boolean(settings.paused),
     launchAtLogin: isLaunchAtLogin(),
+    edgeDwellMs: clampEdgeDwell(settings.edgeDwellMs),
     shortcut: activeShortcut,
     version: app.getVersion(),
     platform: process.platform,
@@ -238,6 +253,7 @@ function initStorage() {
   clipStore = new JsonFile(path.join(base, 'clips.json'), { clips: [] });
   settingsStore = new JsonFile(path.join(base, 'settings.json'), settings);
   settings = { ...settings, ...settingsStore.data };
+  settings.edgeDwellMs = clampEdgeDwell(settings.edgeDwellMs);
 
   // One-time repair: v1's dev-mode login item could vanish across restarts.
   // Re-arm startup once, then respect whatever the user chooses afterwards.
@@ -685,7 +701,7 @@ function watchEdge() {
     edgeArmedAt = Date.now();
     return;
   }
-  if (Date.now() - edgeArmedAt < EDGE_DWELL_MS) return;
+  if (Date.now() - edgeArmedAt < clampEdgeDwell(settings.edgeDwellMs)) return;
 
   edgeArmedAt = 0;
   revealPanel('edge');
@@ -759,7 +775,7 @@ function updateTrayMenu() {
   ]);
   tray.setContextMenu(menu);
   tray.setToolTip(
-    `ClipDeck — ${humanCount(clips.length)}${settings.paused ? ' · paused' : ''} · hold top edge 1.6s`,
+    `ClipDeck — ${humanCount(clips.length)}${settings.paused ? ' · paused' : ''} · hold top edge ${edgeDwellSeconds()}s`,
   );
 }
 
@@ -893,6 +909,13 @@ function registerIpc() {
     saveSettings();
     broadcastState();
     return { ...statePayload(), launchAtLogin: actual };
+  });
+
+  ipcMain.handle('settings:edgeDwell', (_event, seconds) => {
+    settings.edgeDwellMs = clampEdgeDwell(Number(seconds) * 1000);
+    saveSettings();
+    broadcastState();
+    return statePayload();
   });
 
   ipcMain.handle('updates:get', () => ({ ...updateState }));
@@ -1240,7 +1263,7 @@ app.whenReady().then(() => {
           try {
             tray.displayBalloon({
               title: 'ClipDeck is live',
-              content: `Rest the cursor on the top-centre edge for 1.6 seconds, or press ${activeShortcut}. Closing the panel leaves ClipDeck in the tray.`,
+              content: `Rest the cursor on the top-centre edge for ${edgeDwellSeconds()} seconds, or press ${activeShortcut}. Closing the panel leaves ClipDeck in the tray.`,
               icon: nativeImage.createFromPath(APP_ICON),
               noSound: true,
             });

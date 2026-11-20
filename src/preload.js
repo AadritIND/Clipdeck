@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld('clipdeck', {
   clear: () => invoke('clips:clear'),
   setPaused: (paused) => invoke('watch:set', Boolean(paused)),
   setLaunchAtLogin: (enabled) => invoke('settings:launchAtLogin', Boolean(enabled)),
+  setEdgeDwell: (seconds) => invoke('settings:edgeDwell', Number(seconds)),
   getUpdateState: () => invoke('updates:get'),
   checkForUpdates: () => invoke('updates:check'),
   downloadUpdate: () => invoke('updates:download'),

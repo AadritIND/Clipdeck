@@ -36,6 +36,7 @@ ClipDeck is a clipboard manager for people who copy all day and don't want a spr
 - **Images** are stored as PNGs with fast thumbnails.
 - **Tray resident** — no taskbar window, no dock icon clutter.
 - **Global summon shortcut** — <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>V</kbd> by default.
+- **Adjustable top-edge delay** — choose anywhere from 0.5 to 5.0 seconds in the deck settings.
 - **Auto-dismiss** — the deck closes shortly after your pointer leaves it.
 - **In-app updates** — the footer offers new GitHub releases, with download progress and restart-to-install.
 - **Local only** — clipboard history never leaves your computer; only update checks and downloads contact GitHub.
@@ -46,7 +47,7 @@ ClipDeck copies to the clipboard; it does not auto-paste. Press <kbd>Ctrl</kbd>+
 
 The deck is a wide, low shelf — up to **1180 × 360 px** on a 1920×1080 display — anchored to the top center of the active display. It scales to the available work area on smaller screens. The body pairs a ledger column on the left with a tall paper receipt on the right:
 
-- a masthead with the clip count and search;
+- a masthead with the clip count, search, and a compact deck-settings control;
 - text tabs with a sliding orange ink underline;
 - a bordered ledger with `NO. / CLIP / TYPE / AGE` columns;
 - a cream paper receipt for the selected clip, with copy, pin, and delete actions;
@@ -63,7 +64,7 @@ The palette is warm graphite, paper cream, and safety orange. The display face i
 
 ### Installer
 
-1. Download **`ClipDeck-Setup-1.1.0.exe`** from the [latest release](https://github.com/AadritIND/Clipdeck/releases/latest).
+1. Download **`ClipDeck-Setup-1.1.1.exe`** from the [latest release](https://github.com/AadritIND/Clipdeck/releases/latest).
 2. Run the installer and choose an install location if you want one.
 3. The installer creates a Start Menu shortcut, a desktop shortcut, and an uninstaller.
 4. ClipDeck starts in the system tray. Look for the clipboard icon in the notification area.
@@ -93,17 +94,21 @@ ClipDeck 1.1.0 and newer check the latest stable GitHub release shortly after la
 - The tray menu mirrors the same action and includes **Check for updates…**.
 - Downloads are verified against the SHA-512 in the release's `latest.yml`; the updater only reads from this repository's GitHub Releases.
 
-Update checks are disabled in development builds. The installer is unsigned, so Windows SmartScreen may warn when the downloaded update installer runs. Updates are offered from version 1.1.0 onward; users on 1.0.0 need to install 1.1.0 once manually.
+Update checks are disabled in development builds. The installer is unsigned, so Windows SmartScreen may warn when the downloaded update installer runs. Updates are offered from version 1.1.0 onward; users on 1.0.0 need to install 1.1.1 once manually.
 
 ## Using ClipDeck
 
 ### Open the deck
 
-- **Hover the top-center edge** of the screen for about **1.6 seconds**, or
+- **Hover the top-center edge** of the screen for about **1.6 seconds** (the default; adjustable in settings), or
 - press <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>V</kbd>, or
 - click the ClipDeck tray icon.
 
 Hover and edge openings do not steal focus from the app you are typing in. Hotkey and tray openings focus the deck so the keyboard works immediately.
+
+### Adjust the reveal delay
+
+Click the small sliders button in the masthead (next to the close button) to open **DECK SETTINGS**. Drag **TOP-EDGE DELAY** between **0.5s and 5.0s**; the value saves as soon as you release the slider. The setting only changes how long the pointer must rest on the top edge before the deck drops. The global shortcut and tray icon still open it instantly.
 
 ### Close the deck
 
@@ -193,7 +198,7 @@ npm run dist
 The installer is written to:
 
 ```text
-dist/ClipDeck-Setup-1.1.0.exe
+dist/ClipDeck-Setup-1.1.1.exe
 ```
 
 `npm run pack` produces an unpacked build in `dist/win-unpacked/` for smoke testing without installing.
@@ -246,7 +251,7 @@ ClipDeck/
 ## Troubleshooting
 
 **The panel does not appear at the top edge.**
-Move the pointer to the exact top-center edge and hold it there for about 1.6 seconds. The edge target is a narrow strip at the top of the screen. If the panel still does not appear, try the global shortcut or the tray icon; another app may own the shortcut.
+Move the pointer to the exact top-center edge and hold it there for the configured delay (1.6 seconds by default). The edge target is a narrow strip at the top of the screen. If the panel still does not appear, try the global shortcut or the tray icon; another app may own the shortcut.
 
 **The deck disappears while I am reading it.**
 It closes about 180 ms after the pointer leaves the panel. Keep the pointer inside the deck, or use the hotkey to open it with keyboard focus.
@@ -268,7 +273,7 @@ The footer only shows it when a newer stable GitHub release exists. Use **Check 
 
 ## Status
 
-Version **1.1.0** — adds the 1.6-second top-edge reveal and the in-app updater with a footer update button, download progress, and restart-to-install. Windows is the primary target. The renderer and clipboard logic are cross-platform, but the installer, updater, and Startup shortcut flow are Windows-specific. macOS login-item support exists in the main process; Linux autostart is not implemented.
+Version **1.1.1** — adds a masthead settings control for personalizing the top-edge delay from 0.5 to 5.0 seconds, alongside the 1.6-second default and the in-app updater with a footer update button, download progress, and restart-to-install. Windows is the primary target. The renderer and clipboard logic are cross-platform, but the installer, updater, and Startup shortcut flow are Windows-specific. macOS login-item support exists in the main process; Linux autostart is not implemented.
 
 There is no automated test suite yet. The app is smoke-tested manually: clipboard text/image capture, image restore, list/search/filter rendering, pin/delete, hover reveal, pointer-leave dismissal, and the packaged executable.
 

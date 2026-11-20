@@ -166,14 +166,16 @@
 
   let paused = false;
   let launchAtLogin = true;
+  let edgeDwellMs = 1600;
 
   const clone = () => JSON.parse(JSON.stringify(items));
   const state = () => ({
     items: clone(),
     paused,
     launchAtLogin,
+    edgeDwellMs,
     shortcut: 'Ctrl+Alt+V',
-    version: '1.1.0',
+    version: '1.1.1',
     platform: 'win32',
     update: { enabled: false, status: 'idle', version: null, percent: 0, message: '' },
     electron: false,
@@ -213,6 +215,10 @@
     },
     setLaunchAtLogin: async (value) => {
       launchAtLogin = Boolean(value);
+      return state();
+    },
+    setEdgeDwell: async (seconds) => {
+      edgeDwellMs = Math.round(Math.max(0.5, Math.min(5, Number(seconds) || 1.6)) * 1000);
       return state();
     },
     hide: () => window.dispatchEvent(new CustomEvent('clipdeck:mock-hide')),

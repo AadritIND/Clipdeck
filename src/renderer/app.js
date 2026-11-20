@@ -39,6 +39,12 @@
   const ver = $('#ver');
   const updateBtn = $('#updateBtn');
   const updateLabel = $('#updateLabel');
+  const settingsBtn = $('#settingsBtn');
+  const settingsIcon = $('#settingsIcon');
+  const settingsPop = $('#settingsPop');
+  const settingsClose = $('#settingsClose');
+  const dwellRange = $('#dwellRange');
+  const dwellValue = $('#dwellValue');
   const toastZone = $('#toastZone');
   const receiptWrap = $('#receiptWrap');
   const receipt = $('#receipt');
@@ -59,8 +65,9 @@
     receiptId: null,
     paused: false,
     launchAtLogin: false,
+    edgeDwellMs: 1600,
     shortcut: 'Ctrl+Alt+V',
-    version: '1.1.0',
+    version: '1.1.1',
     platform: 'win32',
     update: {
       enabled: false,
@@ -77,6 +84,7 @@
 
   let previewTimer = 0;
   let closeTimer = 0;
+  let settingsOpen = false;
 
   /* ------------------------------------------------------------
      small helpers
@@ -570,6 +578,7 @@
      ------------------------------------------------------------ */
 
   function openStage(reason, focusSearch) {
+    closeSettings();
     clearTimeout(previewTimer);
     clearTimeout(closeTimer);
     document.body.classList.remove('is-idle');
@@ -612,6 +621,7 @@
 
   function closeStage() {
     if (!state.isOpen) return;
+    closeSettings();
     state.isOpen = false;
     state.copying = false;
     stage.dataset.state = 'closed';
@@ -693,6 +703,7 @@
     if (!next || typeof next !== 'object') return;
     if (typeof next.paused === 'boolean') state.paused = next.paused;
     if (typeof next.launchAtLogin === 'boolean') state.launchAtLogin = next.launchAtLogin;
+    if (Number.isFinite(Number(next.edgeDwellMs))) state.edgeDwellMs = Number(next.edgeDwellMs);
     if (typeof next.shortcut === 'string' && next.shortcut) state.shortcut = next.shortcut;
     if (typeof next.version === 'string' && next.version) state.version = next.version;
     if (typeof next.platform === 'string') state.platform = next.platform;
@@ -708,6 +719,30 @@
 
     hotkeyText.textContent = state.shortcut || 'TOP EDGE';
     ver.textContent = `v${state.version}${window.__clipdeckMock ? ' · PREVIEW' : ''}`;
+    syncDwellControl();
+  }
+
+  function syncDwellControl() {
+    if (!dwellRange || !dwellValue) return;
+    const seconds = Math.max(0.5, Math.min(5, (Number(state.edgeDwellMs) || 1600) / 1000));
+    const value = seconds.toFixed(1);
+    dwellRange.value = value;
+    dwellValue.textContent = `${value} s`;
+  }
+
+  function setSettingsOpen(open) {
+    if (!settingsPop || !settingsBtn) return;
+    settingsOpen = Boolean(open);
+    settingsPop.hidden = !settingsOpen;
+    settingsBtn.setAttribute('aria-expanded', String(settingsOpen));
+    if (settingsOpen) {
+      syncDwellControl();
+      if (dwellRange) requestAnimationFrame(() => dwellRange.focus({ preventScroll: true }));
+    }
+  }
+
+  function closeSettings() {
+    setSettingsOpen(false);
   }
 
   function apiavailable(name) {
@@ -764,8 +799,55 @@
     const closeIcon = $('#closeIcon');
     if (searchIcon) searchIcon.innerHTML = Icons.search || '';
     if (closeIcon) closeIcon.innerHTML = Icons.close || '';
+    if (settingsIcon) settingsIcon.innerHTML = Icons.settings || '';
 
     $('#closeBtn').addEventListener('click', () => api.hide());
+
+    if (settingsBtn) {
+      settingsBtn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        setSettingsOpen(!settingsOpen);
+      });
+    }
+
+    if (settingsClose) {
+      settingsClose.addEventListener('click', () => {
+        closeSettings();
+        if (settingsBtn) settingsBtn.focus({ preventScroll: true });
+      });
+    }
+
+    if (settingsPop) settingsPop.addEventListener('click', (event) => event.stopPropagation());
+
+    if (dwellRange) {
+      dwellRange.addEventListener('input', () => {
+        const seconds = Number(dwellRange.value);
+        if (Number.isFinite(seconds)) dwellValue.textContent = `${seconds.toFixed(1)} s`;
+      });
+
+      dwellRange.addEventListener('change', async () => {
+        const seconds = Number(dwellRange.value);
+        if (!Number.isFinite(seconds) || !apiavailable('setEdgeDwell')) return;
+        try {
+          const result = await api.setEdgeDwell(seconds);
+          applyState(result);
+        } catch {
+          toast('Could not save the delay', 'warn');
+          syncDwellControl();
+        }
+      });
+    }
+
+    document.addEventListener('click', (event) => {
+      if (!settingsOpen) return;
+      if (
+        event.target instanceof Element &&
+        (event.target.closest('#settingsPop') || event.target.closest('#settingsBtn'))
+      ) {
+        return;
+      }
+      closeSettings();
+    });
 
     search.addEventListener('input', () => {
       state.query = search.value;
@@ -878,6 +960,11 @@
 
     document.addEventListener('keydown', (event) => {
       if (!state.isOpen) return;
+      if (event.key === 'Escape' && settingsOpen) {
+        closeSettings();
+        event.preventDefault();
+        return;
+      }
       const inSearch = document.activeElement === search;
       const onButton = event.target instanceof Element && Boolean(event.target.closest('button'));
 

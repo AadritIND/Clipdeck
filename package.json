@@ -1,7 +1,7 @@
 {
   "name": "clipdeck",
   "productName": "ClipDeck",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A living clipboard deck that drops from the top edge of your screen.",
   "main": "src/main.js",
   "author": "Aadrit",
