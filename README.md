@@ -33,6 +33,7 @@ ClipDeck is a clipboard manager for people who copy all day and don't want a spr
 - **Search and filters** for text, links, images, and pinned clips.
 - **One-click copy** — click any row or press <kbd>Enter</kbd> to put it back on the clipboard.
 - **Pins** keep the clips you use constantly.
+- **Four-day auto-cleanup** removes unpinned clips that have been inactive for four days.
 - **Images** are stored as PNGs with fast thumbnails.
 - **Tray resident** — no taskbar window, no dock icon clutter.
 - **Global summon shortcut** — <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>V</kbd> by default.
@@ -64,7 +65,7 @@ The palette is warm graphite, paper cream, and safety orange. The display face i
 
 ### Installer
 
-1. Download **`ClipDeck-Setup-1.1.2.exe`** from the [latest release](https://github.com/AadritIND/Clipdeck/releases/latest).
+1. Download **`ClipDeck-Setup-1.1.3.exe`** from the [latest release](https://github.com/AadritIND/Clipdeck/releases/latest).
 2. Run the installer and choose an install location if you want one.
 3. The installer creates a Start Menu shortcut, a desktop shortcut, and an uninstaller.
 4. ClipDeck starts in the system tray. Look for the clipboard icon in the notification area.
@@ -94,7 +95,7 @@ ClipDeck 1.1.0 and newer check the latest stable GitHub release shortly after la
 - The tray menu mirrors the same action and includes **Check for updates…**.
 - Downloads are verified against the SHA-512 in the release's `latest.yml`; the updater only reads from this repository's GitHub Releases.
 
-Update checks are disabled in development builds. The installer is unsigned, so Windows SmartScreen may warn when the downloaded update installer runs. Updates are offered from version 1.1.0 onward. The restart-to-install handoff was corrected in 1.1.2, so users on 1.0.0, 1.1.0, or 1.1.1 should install 1.1.2 once manually.
+Update checks are disabled in development builds. The installer is unsigned, so Windows SmartScreen may warn when the downloaded update installer runs. Updates are offered from version 1.1.0 onward. The restart-to-install handoff was corrected in 1.1.2, so users on 1.0.0, 1.1.0, or 1.1.1 should install 1.1.3 once manually. Users on 1.1.2 or newer can use the in-app update.
 
 ## Using ClipDeck
 
@@ -156,7 +157,7 @@ ClipDeck has no account, analytics, or telemetry. Clipboard history never leaves
 
 Images are displayed through a private `clipdeck://` protocol. The renderer has a restrictive Content Security Policy and no network access. Clipboard contents are only written back to the Windows clipboard when you choose a clip.
 
-History is capped at 120 clips by default; pinned clips are kept when older clips are pruned. Use **Clear history…** in the tray menu to remove everything, or delete individual clips from the deck. Uninstalling leaves your history in place unless you remove the data directory yourself.
+History is capped at 120 clips by default; pinned clips are kept when older clips are pruned. Unpinned clips whose last use is at least four days old are removed automatically at startup and then hourly; pinned clips are never removed by that cleanup. Use **Clear history…** in the tray menu to remove everything, or delete individual clips from the deck. Uninstalling leaves your history in place unless you remove the data directory yourself.
 
 ## Development
 
@@ -198,7 +199,7 @@ npm run dist
 The installer is written to:
 
 ```text
-dist/ClipDeck-Setup-1.1.2.exe
+dist/ClipDeck-Setup-1.1.3.exe
 ```
 
 `npm run pack` produces an unpacked build in `dist/win-unpacked/` for smoke testing without installing.
@@ -273,7 +274,7 @@ The footer only shows it when a newer stable GitHub release exists. Use **Check 
 
 ## Status
 
-Version **1.1.2** — adds a masthead settings control for personalizing the top-edge delay from 0.5 to 5.0 seconds, alongside the 1.6-second default, and corrects the updater's restart-to-install handoff so the downloaded installer runs silently and applies the update. Windows is the primary target. The renderer and clipboard logic are cross-platform, but the installer, updater, and Startup shortcut flow are Windows-specific. macOS login-item support exists in the main process; Linux autostart is not implemented.
+Version **1.1.3** — adds four-day auto-cleanup for inactive unpinned clips, alongside the masthead settings control for personalizing the top-edge delay from 0.5 to 5.0 seconds, the 1.6-second default, and the corrected updater installer handoff. Windows is the primary target. The renderer and clipboard logic are cross-platform, but the installer, updater, and Startup shortcut flow are Windows-specific. macOS login-item support exists in the main process; Linux autostart is not implemented.
 
 There is no automated test suite yet. The app is smoke-tested manually: clipboard text/image capture, image restore, list/search/filter rendering, pin/delete, hover reveal, pointer-leave dismissal, and the packaged executable.
 

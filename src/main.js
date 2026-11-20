@@ -34,6 +34,8 @@ const TRAY_ICON = app.isPackaged
 const MAX_CLIPS = 120;
 const MAX_TEXT = 1_000_000;
 const MAX_IMAGE_BYTES = 30 * 1024 * 1024;
+const STALE_CLIP_MS = 4 * 24 * 60 * 60 * 1000;
+const RETENTION_SWEEP_MS = 60 * 60 * 1000;
 const POLL_MS = 850;
 const EDGE_POLL_MS = 55;
 const EDGE_PX = 10;
@@ -91,6 +93,7 @@ let lastInsideAt = 0;
 let hideTimer = null;
 let edgeTimer = null;
 let pollTimer = null;
+let retentionTimer = null;
 let blurArmAt = 0;
 let edgeArmedAt = 0;
 let edgeMustLeave = false;
@@ -289,6 +292,27 @@ function pruneClips() {
   }
   clips = kept;
   for (const clip of dropped) removeMedia(clip.id);
+}
+
+function purgeInactiveClips(now = Date.now()) {
+  const cutoff = now - STALE_CLIP_MS;
+  const kept = [];
+  const removed = [];
+  for (const clip of clips) {
+    const lastActive = Math.max(Number(clip.lastUsedAt) || 0, Number(clip.createdAt) || 0) || now;
+    if (!clip.pinned && lastActive <= cutoff) removed.push(clip);
+    else kept.push(clip);
+  }
+  if (!removed.length) return 0;
+
+  clips = kept;
+  for (const clip of removed) removeMedia(clip.id);
+  saveClips();
+  console.log(
+    `[retention] removed ${removed.length} inactive unpinned clip${removed.length === 1 ? '' : 's'}`,
+  );
+  broadcastClips();
+  return removed.length;
 }
 
 /* ------------------------------------------------------------------ */
@@ -724,6 +748,7 @@ function watchDismissal(point) {
 
 function startMonitors() {
   pollTimer = setInterval(pollClipboard, POLL_MS);
+  retentionTimer = setInterval(purgeInactiveClips, RETENTION_SWEEP_MS);
   edgeTimer = setInterval(() => {
     if (!panel || !isReady) return;
     const point = screen.getCursorScreenPoint();
@@ -826,6 +851,7 @@ function clearHistory(confirmFirst) {
 function quitApp() {
   isQuitting = true;
   clearInterval(pollTimer);
+  clearInterval(retentionTimer);
   clearInterval(edgeTimer);
   clearTimeout(hideTimer);
   globalShortcut.unregisterAll();
@@ -1182,6 +1208,7 @@ app.on('second-instance', () => revealPanel('second-instance'));
 app.on('before-quit', () => {
   isQuitting = true;
   clearInterval(pollTimer);
+  clearInterval(retentionTimer);
   clearInterval(edgeTimer);
   clearInterval(updateTimer);
   globalShortcut.unregisterAll();
@@ -1201,6 +1228,7 @@ app.on('activate', () => {
 
 app.whenReady().then(() => {
   initStorage();
+  purgeInactiveClips();
 
   protocol.handle('clipdeck', (request) => {
     try {
