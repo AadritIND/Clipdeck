@@ -1158,7 +1158,7 @@ function installUpdate() {
   setImmediate(() => {
     try {
       isQuitting = true;
-      autoUpdater.quitAndInstall(false, true);
+      autoUpdater.quitAndInstall(true, true);
     } catch (error) {
       isQuitting = false;
       console.error('[updater] could not start the installer', error);

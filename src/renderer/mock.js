@@ -175,7 +175,7 @@
     launchAtLogin,
     edgeDwellMs,
     shortcut: 'Ctrl+Alt+V',
-    version: '1.1.1',
+    version: '1.1.2',
     platform: 'win32',
     update: { enabled: false, status: 'idle', version: null, percent: 0, message: '' },
     electron: false,

@@ -67,7 +67,7 @@
     launchAtLogin: false,
     edgeDwellMs: 1600,
     shortcut: 'Ctrl+Alt+V',
-    version: '1.1.1',
+    version: '1.1.2',
     platform: 'win32',
     update: {
       enabled: false,
